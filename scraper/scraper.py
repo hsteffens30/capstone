@@ -21,22 +21,23 @@ def htmlToText(htmlContent):
 # get all categories on the forum
 def getCategories():
     url = f"{BASE}/categories.json"
-    data = requests.get(url, headers=HEADERS).json()
+    response = requests.get(url, headers=HEADERS)
 
-    if data.status_code != 200:
+    if response.status_code != 200:
         return None
 
+    data = response.json()
     return data["category_list"]["categories"]
 
 # get all forum topics from a category
 def getTopics(categorySlug, pageNum):
     url = f"{BASE}/c/{categorySlug}.json?page={pageNum}"
-    data = requests.get(url, headers=HEADERS).json()
+    response = requests.get(url, headers=HEADERS)
 
-    if data.status_code != 200:
+    if response.status_code != 200:
         return None
     
-    return data.json()
+    return response.json()
 
 # fetch a specific topic
 def getTopic(topicID):
@@ -61,6 +62,10 @@ def savePost(filename, record):
 
 # actual crawl function
 def crawl():
+    # ensure data directory exists
+    if not os.path.exists("data"):
+        os.makedirs("data")
+    
     categories = getCategories()
     scraped = loadScraped()
     
@@ -70,7 +75,7 @@ def crawl():
         page = 0  # start on first page of category
 
         while True:  # loop till no more topics
-            listing = getTopics(category, page)  # download page of topics
+            listing = getTopics(cat, page)  # download page of topics
             if listing is None:
                 continue
 
@@ -88,7 +93,7 @@ def crawl():
 
                 for post in topicData["post_stream"]["posts"]:
                     record = {
-                        "category": category,
+                        "category": cat,
                         "topicID": topicID,
                         "topicTitle": topicData["title"],
                         "postID": post["id"],
@@ -126,9 +131,7 @@ def scrapeForumJson():
 #### main
 # main function
 def main():
-    categories = getCategories()
-    for cat in categories:
-        print(cat["id"], cat["name"], cat["slug"])
+    crawl()
 
 # entry point
 if __name__ == "__main__":
